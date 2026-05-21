@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Nhà cung cấp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .main-content {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+            border-radius: 12px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            border-top: none;
+        }
+        .login-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .login-card {
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .hidden { display: none !important; }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .permission-badge {
+            font-size: 0.8em;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        .owner-info {
+            font-size: 0.85em;
+            color: #6c757d;
+            font-style: italic;
+        }
+        .user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 8px;
+        }
+        .permission-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .alert-permission {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container d-flex align-items-center justify-content-center">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6 col-lg-4">
+                    <div class="login-card p-5">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-building fa-3x text-primary mb-3"></i>
+                            <h3 class="fw-bold">Đăng nhập</h3>
+                            <p class="text-muted">Hệ thống Quản lý Nhà cung cấp</p>
+                        </div>
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label class="form-label">Tên đăng nhập</label>
+                                <input type="text" class="form-control" id="username" value="admin" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mật khẩu</label>
+                                <input type="password" class="form-control" id="password" value="admin" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2">
+                                <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading position-fixed top-50 start-50 translate-middle" style="z-index: 9999;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Đang tải dữ liệu...</p>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="hidden">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <div class="col-md-3 col-lg-2 sidebar p-0">
+                    <div class="p-3">
+                        <div class="text-center text-white mb-4">
+                            <i class="fas fa-building fa-2x mb-2"></i>
+                            <h5>Quản lý NCC</h5>
+                            <div class="mt-2">
+                                <img id="userAvatar" src="/placeholder.svg?height=40&width=40" alt="Avatar" class="user-avatar">
+                                <small id="userInfo"></small>
+                            </div>
+                            <div class="mt-1">
+                                <span id="userRoleBadge" class="badge bg-light text-dark"></span>
+                            </div>
+                        </div>
+                        <nav class="nav flex-column">
+                            <a class="nav-link active" href="#" onclick="showSection('dashboard')">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </a>
+                            <a class="nav-link" href="#" onclick="showSection('suppliers')">
+                                <i class="fas fa-building me-2"></i>Nhà cung cấp
+                            </a>
+                            <a class="nav-link" href="#" onclick="showSection('serviceTypes')">
+                                <i class="fas fa-tags me-2"></i>Loại dịch vụ
+                            </a>
+                            <a class="nav-link" href="#" onclick="showSection('services')">
+                                <i class="fas fa-cogs me-2"></i>Dịch vụ
+                            </a>
+                            <a class="nav-link" href="#" onclick="showSection('orders')">
+                                <i class="fas fa-file-contract me-2"></i>Đơn hàng
+                            </a>
+                            <a class="nav-link" href="#" onclick="showSection('contacts')">
+                                <i class="fas fa-address-book me-2"></i>Liên hệ
+                            </a>
+                            <a class="nav-link admin-only hidden" href="#" onclick="showSection('users')">
+                                <i class="fas fa-users me-2"></i>Người dùng
+                            </a>
+                            <hr class="text-white-50">
+                            <a class="nav-link" href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
+                            </a>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="col-md-9 col-lg-10 main-content p-4">
+                    <!-- Dashboard -->
+                    <div id="dashboard" class="content-section">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h2>
+                            <div class="badge bg-info" id="dashboardPermission"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-building fa-2x text-primary mb-2"></i>
+                                        <h5 class="card-title">Nhà cung cấp</h5>
+                                        <h3 class="text-primary" id="supplierCount">0</h3>
+                                        <small class="text-muted" id="supplierNote"></small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-cogs fa-2x text-success mb-2"></i>
+                                        <h5 class="card-title">Dịch vụ</h5>
+                                        <h3 class="text-success" id="serviceCount">0</h3>
+                                        <small class="text-muted" id="serviceNote"></small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-file-contract fa-2x text-warning mb-2"></i>
+                                        <h5 class="card-title">Đơn hàng</h5>
+                                        <h3 class="text-warning" id="orderCount">0</h3>
+                                        <small class="text-muted" id="orderNote"></small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-users fa-2x text-info mb-2"></i>
+                                        <h5 class="card-title">Người dùng</h5>
+                                        <h3 class="text-info" id="userCount">0</h3>
+                                        <small class="text-muted">Tổng trong hệ thống</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Suppliers Section -->
+                    <div id="suppliers" class="content-section hidden">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-building me-2"></i>Quản lý Nhà cung cấp</h2>
+                            <div>
+                                <span class="badge bg-info me-2" id="supplierPermissionBadge"></span>
+                                <button class="btn btn-primary" onclick="showSupplierModal()">
+                                    <i class="fas fa-plus me-2"></i>Thêm nhà cung cấp
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-info" id="supplierPermissionInfo">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span id="supplierPermissionText"></span>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Tên</th>
+                                                <th>Mã số thuế</th>
+                                                <th>Điện thoại</th>
+                                                <th>Email</th>
+                                                <th>Địa chỉ</th>
+                                                <th>Người tạo</th>
+                                                <th>Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="suppliersTable"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service Types Section -->
+                    <div id="serviceTypes" class="content-section hidden">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-tags me-2"></i>Quản lý Loại dịch vụ</h2>
+                            <button class="btn btn-primary admin-only" onclick="showServiceTypeModal()">
+                                <i class="fas fa-plus me-2"></i>Thêm loại dịch vụ
+                            </button>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Tên</th>
+                                                <th>Mô tả</th>
+                                                <th class="admin-only">Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="serviceTypesTable"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Services Section -->
+                    <div id="services" class="content-section hidden">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-cogs me-2"></i>Quản lý Dịch vụ</h2>
+                            <div>
+                                <span class="badge bg-info me-2" id="servicePermissionBadge"></span>
+                                <button class="btn btn-primary" onclick="showServiceModal()">
+                                    <i class="fas fa-plus me-2"></i>Thêm dịch vụ
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Tên</th>
+                                                <th>Nhà cung cấp</th>
+                                                <th>Loại dịch vụ</th>
+                                                <th>Giá</th>
+                                                <th>Người tạo</th>
+                                                <th>Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="servicesTable"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Orders Section -->
+                    <div id="orders" class="content-section hidden">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-file-contract me-2"></i>Quản lý Đơn hàng</h2>
+                            <div>
+                                <span class="badge bg-info me-2" id="orderPermissionBadge"></span>
+                                <button class="btn btn-primary" onclick="showOrderModal()">
+                                    <i class="fas fa-plus me-2"></i>Thêm đơn hàng
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-info" id="orderPermissionInfo">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span id="orderPermissionText"></span>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Nhà cung cấp</th>
+                                                <th>Dịch vụ</th>
+                                                <th>Ngày đặt</th>
+                                                <th>Trạng thái</th>
+                                                <th>Tổng tiền</th>
+                                                <th class="admin-only">Người tạo</th>
+                                                <th>Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ordersTable"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contacts Section -->
+                    <div id="contacts" class="content-section hidden">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-address-book me-2"></i>Quản lý Liên hệ</h2>
+                            <div>
+                                <span class="badge bg-info me-2" id="contactPermissionBadge"></span>
+                                <button class="btn btn-primary" onclick="showContactModal()">
+                                    <i class="fas fa-plus me-2"></i>Thêm liên hệ
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-info" id="contactPermissionInfo">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="contactPermissionText"></span>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Nhà cung cấp</th>
+                                            <th>Tên liên hệ</th>
+                                            <th>Điện thoại</th>
+                                            <th>Email</th>
+                                            <th>Người tạo</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="contactsTable"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                    <!-- Users Section (Admin only) -->
+                    <div id="users" class="content-section hidden">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-users me-2"></i>Quản lý Người dùng</h2>
+                            <button class="btn btn-primary" onclick="showUserModal()">
+                                <i class="fas fa-plus me-2"></i>Thêm người dùng
+                            </button>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Tên đăng nhập</th>
+                                                <th>Email</th>
+                                                <th>Vai trò</th>
+                                                <th>Ngày tạo</th>
+                                                <th>Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="usersTable"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Supplier Modal -->
+    <div class="modal fade" id="supplierModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm/Sửa Nhà cung cấp</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="supplierForm">
+                        <input type="hidden" id="supplierId">
+                        <div class="mb-3">
+                            <label class="form-label">Tên nhà cung cấp</label>
+                            <input type="text" class="form-control" id="supplierName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mã số thuế</label>
+                            <input type="text" class="form-control" id="supplierTaxCode">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Điện thoại</label>
+                            <input type="text" class="form-control" id="supplierPhone">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="supplierEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Địa chỉ</label>
+                            <textarea class="form-control" id="supplierAddress" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSupplier()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Type Modal -->
+    <div class="modal fade" id="serviceTypeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm/Sửa Loại dịch vụ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="serviceTypeForm">
+                        <input type="hidden" id="serviceTypeId">
+                        <div class="mb-3">
+                            <label class="form-label">Tên loại dịch vụ</label>
+                            <input type="text" class="form-control" id="serviceTypeName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mô tả</label>
+                            <textarea class="form-control" id="serviceTypeDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveServiceType()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Modal -->
+    <div class="modal fade" id="serviceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm/Sửa Dịch vụ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="serviceForm">
+                        <input type="hidden" id="serviceId">
+                        <div class="mb-3">
+                            <label class="form-label">Tên dịch vụ</label>
+                            <input type="text" class="form-control" id="serviceName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nhà cung cấp</label>
+                            <select class="form-control" id="serviceSupplier" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Loại dịch vụ</label>
+                            <select class="form-control" id="serviceType" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Giá</label>
+                            <input type="number" class="form-control" id="servicePrice" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mô tả</label>
+                            <textarea class="form-control" id="serviceDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveService()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Modal -->
+    <div class="modal fade" id="orderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm/Sửa Đơn hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="orderForm">
+                        <input type="hidden" id="orderId">
+                        <div class="mb-3">
+                            <label class="form-label">Nhà cung cấp</label>
+                            <select class="form-control" id="orderSupplier" required onchange="loadServicesForOrder()"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Dịch vụ</label>
+                            <select class="form-control" id="orderService" required onchange="updateOrderPrice()"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Ngày đặt</label>
+                            <input type="date" class="form-control" id="orderDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái</label>
+                            <select class="form-control" id="orderStatus" required>
+                                <option value="pending">Chờ xử lý</option>
+                                <option value="confirmed">Đã xác nhận</option>
+                                <option value="completed">Hoàn thành</option>
+                                <option value="cancelled">Đã hủy</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tổng tiền</label>
+                            <input type="number" class="form-control" id="orderTotalPrice" step="0.01" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveOrder()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Modal -->
+    <div class="modal fade" id="contactModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm/Sửa Liên hệ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="contactForm">
+                        <input type="hidden" id="contactId">
+                        <div class="mb-3">
+                            <label class="form-label">Nhà cung cấp</label>
+                            <select class="form-control" id="contactSupplier" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tên liên hệ</label>
+                            <input type="text" class="form-control" id="contactName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Điện thoại</label>
+                            <input type="text" class="form-control" id="contactPhone">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="contactEmail">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveContact()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm/Sửa Người dùng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label class="form-label">Tên đăng nhập</label>
+                            <input type="text" class="form-control" id="userName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="userEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mật khẩu</label>
+                            <input type="password" class="form-control" id="userPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Vai trò</label>
+                            <select class="form-control" id="userRole" required>
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUser()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentUser = null;
+        const API_BASE_URL = 'http://localhost:3000/api';
+        
+        // Data containers
+        let data = {
+            suppliers: [],
+            serviceTypes: [],
+            services: [],
+            orders: [],
+            contacts: [],
+            users: []
+        };
+
+        // Utility functions
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            try {
+                showLoading();
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                // Thêm userId và userRole vào query string cho GET requests
+                if (method === 'GET' && currentUser) {
+                    const separator = endpoint.includes('?') ? '&' : '?';
+                    endpoint += `${separator}userId=${currentUser.id}&userRole=${currentUser.role}`;
+                }
+
+                // Thêm userId và userRole vào body cho PUT/DELETE requests
+                if ((method === 'PUT' || method === 'DELETE') && currentUser && data) {
+                    data.userId = currentUser.id;
+                    data.userRole = currentUser.role;
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'API call failed');
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                alert('Lỗi: ' + error.message);
+                throw error;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Authentication
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const result = await apiCall('/login', 'POST', {
+                    username,
+                    password
+                });
+                
+                if (result.success) {
+                    currentUser = result.user;
+                    document.getElementById('loginPage').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    document.getElementById('userInfo').textContent = currentUser.username;
+                    document.getElementById('userAvatar').src = currentUser.avatar || '/placeholder.svg?height=40&width=40';
+                    document.getElementById('userRoleBadge').textContent = currentUser.role === 'admin' ? 'Quản trị viên' : 'Người dùng';
+                    
+                    // Show/hide admin elements
+                    const adminElements = document.querySelectorAll('.admin-only');
+                    adminElements.forEach(el => {
+                        if (currentUser.role === 'admin') {
+                            el.classList.remove('hidden');
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    });
+                    
+                    // Update permission info
+                    updatePermissionInfo();
+                    
+                    await loadDashboard();
+                    await loadAllData();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        });
+
+        function updatePermissionInfo() {
+            const isAdmin = currentUser.role === 'admin';
+            
+            // Dashboard permission
+            document.getElementById('dashboardPermission').textContent = isAdmin ? 'Xem tất cả dữ liệu' : 'Xem dữ liệu của bạn';
+            
+            // Supplier permissions
+            const supplierBadge = document.getElementById('supplierPermissionBadge');
+            const supplierText = document.getElementById('supplierPermissionText');
+            if (isAdmin) {
+                supplierBadge.textContent = 'Quản lý tất cả';
+                supplierBadge.className = 'badge bg-success me-2';
+                supplierText.textContent = 'Bạn có thể thêm, sửa, xóa tất cả nhà cung cấp trong hệ thống.';
+            } else {
+                supplierBadge.textContent = 'Quản lý riêng';
+                supplierBadge.className = 'badge bg-warning me-2';
+                supplierText.textContent = 'Bạn có thể xem tất cả nhà cung cấp, nhưng chỉ thêm/sửa/xóa nhà cung cấp của mình.';
+            }
+            
+            // Service permissions
+            const serviceBadge = document.getElementById('servicePermissionBadge');
+            if (isAdmin) {
+                serviceBadge.textContent = 'Quản lý tất cả dịch vụ';
+                serviceBadge.className = 'badge bg-success me-2';
+            } else {
+                serviceBadge.textContent = 'Quản lý dịch vụ của bạn';
+                serviceBadge.className = 'badge bg-warning me-2';
+            }
+            
+            // Order permissions
+            const orderBadge = document.getElementById('orderPermissionBadge');
+            const orderText = document.getElementById('orderPermissionText');
+            if (isAdmin) {
+                orderBadge.textContent = 'Xem tất cả đơn hàng';
+                orderBadge.className = 'badge bg-success me-2';
+                orderText.textContent = 'Bạn có thể xem và quản lý đơn hàng của tất cả người dùng.';
+            } else {
+                orderBadge.textContent = 'Chỉ đơn hàng của bạn';
+                orderBadge.className = 'badge bg-warning me-2';
+                orderText.textContent = 'Bạn chỉ có thể xem và quản lý đơn hàng do mình tạo.';
+            }
+            
+            // Contact permissions
+            const contactBadge = document.getElementById('contactPermissionBadge');
+            const contactText = document.getElementById('contactPermissionText');
+            if (isAdmin) {
+                contactBadge.textContent = 'Quản lý tất cả liên hệ';
+                contactBadge.className = 'badge bg-success me-2';
+                contactText.textContent = 'Bạn có thể xem và quản lý liên hệ của tất cả người dùng.';
+            } else {
+                contactBadge.textContent = 'Quản lý liên hệ của bạn';
+                contactBadge.className = 'badge bg-warning me-2';
+                contactText.textContent = 'Bạn có thể xem tất cả liên hệ, nhưng chỉ sửa/xóa liên hệ do mình tạo.';
+            }
+            
+            // Dashboard notes
+            document.getElementById('supplierNote').textContent = isAdmin ? 'Tất cả trong hệ thống' : 'Của bạn';
+            document.getElementById('serviceNote').textContent = isAdmin ? 'Tất cả trong hệ thống' : 'Của bạn';
+            document.getElementById('orderNote').textContent = isAdmin ? 'Tất cả trong hệ thống' : 'Của bạn';
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        // Navigation
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
+            // Show selected section
+            document.getElementById(section).classList.remove('hidden');
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Load data for the section
+            switch(section) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'suppliers':
+                    loadSuppliers();
+                    break;
+                case 'serviceTypes':
+                    loadServiceTypes();
+                    break;
+                case 'services':
+                    loadServices();
+                    break;
+                case 'orders':
+                    loadOrders();
+                    break;
+                case 'contacts':
+                    loadContacts();
+                    break;
+                case 'users':
+                    loadUsers();
+                    break;
+            }
+        }
+
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                const stats = await apiCall(`/dashboard-stats`);
+                document.getElementById('supplierCount').textContent = stats.suppliers;
+                document.getElementById('serviceCount').textContent = stats.services;
+                document.getElementById('orderCount').textContent = stats.orders;
+                document.getElementById('userCount').textContent = stats.users;
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        // Suppliers
+        async function loadSuppliers() {
+            try {
+                data.suppliers = await apiCall('/suppliers');
+                const tbody = document.getElementById('suppliersTable');
+                tbody.innerHTML = '';
+                
+                data.suppliers.forEach(supplier => {
+                    const canEdit = currentUser.role === 'admin' || supplier.user_id === currentUser.id;
+                    
+                    const row = `
+                        <tr>
+                            <td>${supplier.id}</td>
+                            <td>${supplier.name}</td>
+                            <td>${supplier.tax_code || ''}</td>
+                            <td>${supplier.phone || ''}</td>
+                            <td>${supplier.email || ''}</td>
+                            <td>${supplier.address || ''}</td>
+                            <td>
+                                <div class="owner-info">
+                                    <img src="${supplier.creator_avatar || '/placeholder.svg?height=20&width=20'}" alt="Avatar" class="user-avatar" style="width: 20px; height: 20px;">
+                                    ${supplier.creator_name || 'N/A'}
+                                    ${supplier.user_id === currentUser.id ? '<span class="badge bg-primary ms-1">Của bạn</span>' : ''}
+                                </div>
+                            </td>
+                            <td>
+                                ${canEdit ? `
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editSupplier(${supplier.id})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSupplier(${supplier.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : `
+                                    <span class="badge bg-secondary">Chỉ xem</span>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function showSupplierModal(id = null) {
+            const modal = new bootstrap.Modal(document.getElementById('supplierModal'));
+            
+            if (id) {
+                const supplier = data.suppliers.find(s => s.id === id);
+                document.getElementById('supplierId').value = supplier.id;
+                document.getElementById('supplierName').value = supplier.name;
+                document.getElementById('supplierTaxCode').value = supplier.tax_code || '';
+                document.getElementById('supplierPhone').value = supplier.phone || '';
+                document.getElementById('supplierEmail').value = supplier.email || '';
+                document.getElementById('supplierAddress').value = supplier.address || '';
+            } else {
+                document.getElementById('supplierForm').reset();
+                document.getElementById('supplierId').value = '';
+            }
+            
+            modal.show();
+        }
+
+        async function saveSupplier() {
+            try {
+                const id = document.getElementById('supplierId').value;
+                const supplier = {
+                    name: document.getElementById('supplierName').value,
+                    tax_code: document.getElementById('supplierTaxCode').value,
+                    phone: document.getElementById('supplierPhone').value,
+                    email: document.getElementById('supplierEmail').value,
+                    address: document.getElementById('supplierAddress').value,
+                    user_id: currentUser.id
+                };
+                
+                if (id) {
+                    // Update
+                    await apiCall(`/suppliers/${id}`, 'PUT', supplier);
+                } else {
+                    // Create
+                    await apiCall('/suppliers', 'POST', supplier);
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('supplierModal')).hide();
+                await loadSuppliers();
+                await loadDashboard();
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function editSupplier(id) {
+            const supplier = data.suppliers.find(s => s.id === id);
+            if (currentUser.role === 'admin' || supplier.user_id === currentUser.id) {
+                showSupplierModal(id);
+            } else {
+                alert('Bạn không có quyền sửa nhà cung cấp này!');
+            }
+        }
+
+        async function deleteSupplier(id) {
+            const supplier = data.suppliers.find(s => s.id === id);
+            if (currentUser.role !== 'admin' && supplier.user_id !== currentUser.id) {
+                alert('Bạn không có quyền xóa nhà cung cấp này!');
+                return;
+            }
+            
+            if (confirm('Bạn có chắc chắn muốn xóa nhà cung cấp này?')) {
+                try {
+                    await apiCall(`/suppliers/${id}`, 'DELETE');
+                    await loadSuppliers();
+                    await loadDashboard();
+                } catch (error) {
+                    // Error already handled in apiCall
+                }
+            }
+        }
+
+        // Service Types
+        async function loadServiceTypes() {
+            try {
+                data.serviceTypes = await apiCall('/service-types');
+                const tbody = document.getElementById('serviceTypesTable');
+                tbody.innerHTML = '';
+                
+                data.serviceTypes.forEach(type => {
+                    const row = `
+                        <tr>
+                            <td>${type.id}</td>
+                            <td>${type.name}</td>
+                            <td>${type.description || ''}</td>
+                            <td class="admin-only ${currentUser.role !== 'admin' ? 'hidden' : ''}">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editServiceType(${type.id})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteServiceType(${type.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function showServiceTypeModal(id = null) {
+            if (currentUser.role !== 'admin') {
+                alert('Chỉ admin mới có quyền thêm/sửa loại dịch vụ!');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('serviceTypeModal'));
+            
+            if (id) {
+                const type = data.serviceTypes.find(t => t.id === id);
+                document.getElementById('serviceTypeId').value = type.id;
+                document.getElementById('serviceTypeName').value = type.name;
+                document.getElementById('serviceTypeDescription').value = type.description || '';
+            } else {
+                document.getElementById('serviceTypeForm').reset();
+                document.getElementById('serviceTypeId').value = '';
+            }
+            
+            modal.show();
+        }
+
+        async function saveServiceType() {
+            try {
+                const id = document.getElementById('serviceTypeId').value;
+                const type = {
+                    name: document.getElementById('serviceTypeName').value,
+                    description: document.getElementById('serviceTypeDescription').value
+                };
+                
+                if (id) {
+                    // Update
+                    await apiCall(`/service-types/${id}`, 'PUT', type);
+                } else {
+                    // Create
+                    await apiCall('/service-types', 'POST', type);
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('serviceTypeModal')).hide();
+                await loadServiceTypes();
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function editServiceType(id) {
+            showServiceTypeModal(id);
+        }
+
+        async function deleteServiceType(id) {
+            if (currentUser.role !== 'admin') {
+                alert('Chỉ admin mới có quyền xóa loại dịch vụ!');
+                return;
+            }
+            
+            if (confirm('Bạn có chắc chắn muốn xóa loại dịch vụ này?')) {
+                try {
+                    await apiCall(`/service-types/${id}`, 'DELETE');
+                    await loadServiceTypes();
+                } catch (error) {
+                    // Error already handled in apiCall
+                }
+            }
+        }
+
+        // Services
+        async function loadServices() {
+            try {
+                data.services = await apiCall('/services');
+                const tbody = document.getElementById('servicesTable');
+                tbody.innerHTML = '';
+                
+                data.services.forEach(service => {
+                    const canEdit = currentUser.role === 'admin' || service.user_id === currentUser.id;
+                    
+                    const row = `
+                        <tr>
+                            <td>${service.id}</td>
+                            <td>${service.name}</td>
+                            <td>${service.supplier_name || 'N/A'}</td>
+                            <td>${service.service_type_name || 'N/A'}</td>
+                            <td>${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(service.price)}</td>
+                            <td>
+                                ${service.creator_name || 'N/A'}
+                                ${service.user_id === currentUser.id ? '<span class="badge bg-primary ms-1">Của bạn</span>' : ''}
+                            </td>
+                            <td>
+                                ${canEdit ? `
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editService(${service.id})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteService(${service.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : `
+                                    <span class="badge bg-secondary">Chỉ xem</span>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function showServiceModal(id = null) {
+            const modal = new bootstrap.Modal(document.getElementById('serviceModal'));
+            
+            // Load suppliers and service types
+            const supplierSelect = document.getElementById('serviceSupplier');
+            const serviceTypeSelect = document.getElementById('serviceType');
+            
+            supplierSelect.innerHTML = '<option value="">Chọn nhà cung cấp</option>';
+            data.suppliers.forEach(supplier => {
+                supplierSelect.innerHTML += `<option value="${supplier.id}">${supplier.name}</option>`;
+            });
+            
+            serviceTypeSelect.innerHTML = '<option value="">Chọn loại dịch vụ</option>';
+            data.serviceTypes.forEach(type => {
+                serviceTypeSelect.innerHTML += `<option value="${type.id}">${type.name}</option>`;
+            });
+            
+            if (id) {
+                const service = data.services.find(s => s.id === id);
+                document.getElementById('serviceId').value = service.id;
+                document.getElementById('serviceName').value = service.name;
+                document.getElementById('serviceSupplier').value = service.supplier_id;
+                document.getElementById('serviceType').value = service.service_type_id;
+                document.getElementById('servicePrice').value = service.price;
+                document.getElementById('serviceDescription').value = service.description || '';
+            } else {
+                document.getElementById('serviceForm').reset();
+                document.getElementById('serviceId').value = '';
+            }
+            
+            modal.show();
+        }
+
+        async function saveService() {
+            try {
+                const id = document.getElementById('serviceId').value;
+                const service = {
+                    name: document.getElementById('serviceName').value,
+                    supplier_id: parseInt(document.getElementById('serviceSupplier').value),
+                    service_type_id: parseInt(document.getElementById('serviceType').value),
+                    price: parseFloat(document.getElementById('servicePrice').value),
+                    description: document.getElementById('serviceDescription').value,
+                    user_id: currentUser.id
+                };
+                
+                if (id) {
+                    // Update
+                    await apiCall(`/services/${id}`, 'PUT', service);
+                } else {
+                    // Create
+                    await apiCall('/services', 'POST', service);
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('serviceModal')).hide();
+                await loadServices();
+                await loadDashboard();
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function editService(id) {
+            const service = data.services.find(s => s.id === id);
+            if (currentUser.role === 'admin' || service.user_id === currentUser.id) {
+                showServiceModal(id);
+            } else {
+                alert('Bạn không có quyền sửa dịch vụ này!');
+            }
+        }
+
+        async function deleteService(id) {
+            const service = data.services.find(s => s.id === id);
+            if (currentUser.role !== 'admin' && service.user_id !== currentUser.id) {
+                alert('Bạn không có quyền xóa dịch vụ này!');
+                return;
+            }
+            
+            if (confirm('Bạn có chắc chắn muốn xóa dịch vụ này?')) {
+                try {
+                    await apiCall(`/services/${id}`, 'DELETE');
+                    await loadServices();
+                    await loadDashboard();
+                } catch (error) {
+                    // Error already handled in apiCall
+                }
+            }
+        }
+
+        // Orders
+        async function loadOrders() {
+            try {
+                data.orders = await apiCall('/orders');
+                const tbody = document.getElementById('ordersTable');
+                tbody.innerHTML = '';
+                
+                data.orders.forEach(order => {
+                    const canEdit = currentUser.role === 'admin' || order.user_id === currentUser.id;
+                    
+                    const row = `
+                        <tr>
+                            <td>${order.id}</td>
+                            <td>${order.supplier_name || 'N/A'}</td>
+                            <td>${order.service_name || 'N/A'}</td>
+                            <td>${order.order_date}</td>
+                            <td>
+                                <span class="badge bg-${getStatusColor(order.status)}">${getStatusText(order.status)}</span>
+                            </td>
+                            <td>${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.total_price)}</td>
+                            ${currentUser.role === 'admin' ? `
+                                <td>
+                                    ${order.creator_name || 'N/A'}
+                                    ${order.user_id === currentUser.id ? '<span class="badge bg-primary ms-1">Của bạn</span>' : ''}
+                                </td>
+                            ` : ''}
+                            <td>
+                                ${canEdit ? `
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editOrder(${order.id})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${order.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : `
+                                    <span class="badge bg-secondary">Chỉ xem</span>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'pending': return 'warning';
+                case 'confirmed': return 'info';
+                case 'completed': return 'success';
+                case 'cancelled': return 'danger';
+                default: return 'secondary';
+            }
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'pending': return 'Chờ xử lý';
+                case 'confirmed': return 'Đã xác nhận';
+                case 'completed': return 'Hoàn thành';
+                case 'cancelled': return 'Đã hủy';
+                default: return status;
+            }
+        }
+
+        function showOrderModal(id = null) {
+            const modal = new bootstrap.Modal(document.getElementById('orderModal'));
+            
+            // Load suppliers
+            const supplierSelect = document.getElementById('orderSupplier');
+            supplierSelect.innerHTML = '<option value="">Chọn nhà cung cấp</option>';
+            data.suppliers.forEach(supplier => {
+                supplierSelect.innerHTML += `<option value="${supplier.id}">${supplier.name}</option>`;
+            });
+            
+            if (id) {
+                const order = data.orders.find(o => o.id === id);
+                document.getElementById('orderId').value = order.id;
+                document.getElementById('orderSupplier').value = order.supplier_id;
+                loadServicesForOrder();
+                document.getElementById('orderService').value = order.service_id;
+                document.getElementById('orderDate').value = order.order_date;
+                document.getElementById('orderStatus').value = order.status;
+                document.getElementById('orderTotalPrice').value = order.total_price;
+            } else {
+                document.getElementById('orderForm').reset();
+                document.getElementById('orderId').value = '';
+                document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+            }
+            
+            modal.show();
+        }
+
+        function loadServicesForOrder() {
+            const supplierId = document.getElementById('orderSupplier').value;
+            const serviceSelect = document.getElementById('orderService');
+            
+            serviceSelect.innerHTML = '<option value="">Chọn dịch vụ</option>';
+            
+            if (supplierId) {
+                const services = data.services.filter(s => s.supplier_id == supplierId);
+                services.forEach(service => {
+                    serviceSelect.innerHTML += `<option value="${service.id}" data-price="${service.price}">${service.name}</option>`;
+                });
+            }
+        }
+
+        function updateOrderPrice() {
+            const serviceSelect = document.getElementById('orderService');
+            const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+            
+            if (selectedOption && selectedOption.dataset.price) {
+                document.getElementById('orderTotalPrice').value = selectedOption.dataset.price;
+            }
+        }
+
+        async function saveOrder() {
+            try {
+                const id = document.getElementById('orderId').value;
+                const order = {
+                    supplier_id: parseInt(document.getElementById('orderSupplier').value),
+                    service_id: parseInt(document.getElementById('orderService').value),
+                    order_date: document.getElementById('orderDate').value,
+                    status: document.getElementById('orderStatus').value,
+                    total_price: parseFloat(document.getElementById('orderTotalPrice').value),
+                    user_id: currentUser.id
+                };
+                
+                if (id) {
+                    // Update
+                    await apiCall(`/orders/${id}`, 'PUT', order);
+                } else {
+                    // Create
+                    await apiCall('/orders', 'POST', order);
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('orderModal')).hide();
+                await loadOrders();
+                await loadDashboard();
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function editOrder(id) {
+            const order = data.orders.find(o => o.id === id);
+            if (currentUser.role === 'admin' || order.user_id === currentUser.id) {
+                showOrderModal(id);
+            } else {
+                alert('Bạn không có quyền sửa đơn hàng này!');
+            }
+        }
+
+        async function deleteOrder(id) {
+            const order = data.orders.find(o => o.id === id);
+            if (currentUser.role !== 'admin' && order.user_id !== currentUser.id) {
+                alert('Bạn không có quyền xóa đơn hàng này!');
+                return;
+            }
+            
+            if (confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
+                try {
+                    await apiCall(`/orders/${id}`, 'DELETE');
+                    await loadOrders();
+                    await loadDashboard();
+                } catch (error) {
+                    // Error already handled in apiCall
+                }
+            }
+        }
+
+        // Contacts
+        async function loadContacts() {
+            try {
+                data.contacts = await apiCall('/contacts');
+                const tbody = document.getElementById('contactsTable');
+                tbody.innerHTML = '';
+                
+                data.contacts.forEach(contact => {
+                    const canEdit = currentUser.role === 'admin' || contact.user_id === currentUser.id;
+                    
+                    const row = `
+                        <tr>
+                            <td>${contact.id}</td>
+                            <td>${contact.supplier_name || 'N/A'}</td>
+                            <td>${contact.contact_name}</td>
+                            <td>${contact.phone || ''}</td>
+                            <td>${contact.email || ''}</td>
+                            <td>
+                                <div class="owner-info">
+                                    <img src="${contact.creator_avatar || '/placeholder.svg?height=20&width=20'}" alt="Avatar" class="user-avatar" style="width: 20px; height: 20px;">
+                                    ${contact.creator_name || 'N/A'}
+                                    ${contact.user_id === currentUser.id ? '<span class="badge bg-primary ms-1">Của bạn</span>' : ''}
+                                </div>
+                            </td>
+                            <td>
+                                ${canEdit ? `
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editContact(${contact.id})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteContact(${contact.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : `
+                                    <span class="badge bg-secondary">Chỉ xem</span>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        async function saveContact() {
+            try {
+                const id = document.getElementById('contactId').value;
+                const contact = {
+                    supplier_id: parseInt(document.getElementById('contactSupplier').value),
+                    contact_name: document.getElementById('contactName').value,
+                    phone: document.getElementById('contactPhone').value,
+                    email: document.getElementById('contactEmail').value,
+                    user_id: currentUser.id
+                };
+                
+                if (id) {
+                    // Update
+                    await apiCall(`/contacts/${id}`, 'PUT', contact);
+                } else {
+                    // Create
+                    await apiCall('/contacts', 'POST', contact);
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('contactModal')).hide();
+                await loadContacts();
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function editContact(id) {
+            const contact = data.contacts.find(c => c.id === id);
+            if (currentUser.role === 'admin' || contact.user_id === currentUser.id) {
+                showContactModal(id);
+            } else {
+                alert('Bạn không có quyền sửa liên hệ này!');
+            }
+        }
+
+        async function deleteContact(id) {
+            const contact = data.contacts.find(c => c.id === id);
+            if (currentUser.role !== 'admin' && contact.user_id !== currentUser.id) {
+                alert('Bạn không có quyền xóa liên hệ này!');
+                return;
+            }
+            
+            if (confirm('Bạn có chắc chắn muốn xóa liên hệ này?')) {
+                try {
+                    await apiCall(`/contacts/${id}`, 'DELETE');
+                    await loadContacts();
+                } catch (error) {
+                    // Error already handled in apiCall
+                }
+            }
+        }
+
+        // Users (Admin only)
+        async function loadUsers() {
+            try {
+                data.users = await apiCall('/users');
+                const tbody = document.getElementById('usersTable');
+                tbody.innerHTML = '';
+                
+                data.users.forEach(user => {
+                    const row = `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.username}</td>
+                            <td>${user.email}</td>
+                            <td>
+                                <span class="badge bg-${user.role === 'admin' ? 'danger' : 'primary'}">${user.role}</span>
+                            </td>
+                            <td>${new Date(user.created_at).toLocaleDateString('vi-VN')}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                ${user.id !== currentUser.id ? `
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function showUserModal(id = null) {
+            if (currentUser.role !== 'admin') {
+                alert('Chỉ admin mới có quyền quản lý người dùng!');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('userModal'));
+            
+            if (id) {
+                const user = data.users.find(u => u.id === id);
+                document.getElementById('userId').value = user.id;
+                document.getElementById('userName').value = user.username;
+                document.getElementById('userEmail').value = user.email;
+                document.getElementById('userPassword').value = '';
+                document.getElementById('userRole').value = user.role;
+            } else {
+                document.getElementById('userForm').reset();
+                document.getElementById('userId').value = '';
+            }
+            
+            modal.show();
+        }
+
+        async function saveUser() {
+            try {
+                const id = document.getElementById('userId').value;
+                const user = {
+                    username: document.getElementById('userName').value,
+                    email: document.getElementById('userEmail').value,
+                    password: document.getElementById('userPassword').value,
+                    role: document.getElementById('userRole').value
+                };
+                
+                if (id) {
+                    // Update
+                    await apiCall(`/users/${id}`, 'PUT', user);
+                } else {
+                    // Create
+                    await apiCall('/users', 'POST', user);
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                await loadUsers();
+                await loadDashboard();
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        function editUser(id) {
+            showUserModal(id);
+        }
+
+        async function deleteUser(id) {
+            if (currentUser.role !== 'admin') {
+                alert('Chỉ admin mới có quyền xóa người dùng!');
+                return;
+            }
+            
+            if (id === currentUser.id) {
+                alert('Bạn không thể xóa tài khoản của chính mình!');
+                return;
+            }
+            
+            if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
+                try {
+                    await apiCall(`/users/${id}`, 'DELETE');
+                    await loadUsers();
+                    await loadDashboard();
+                } catch (error) {
+                    // Error already handled in apiCall
+                }
+            }
+        }
+
+        async function loadAllData() {
+            try {
+                await Promise.all([
+                    loadSuppliers(),
+                    loadServiceTypes(),
+                    loadServices(),
+                    loadOrders(),
+                    loadContacts()
+                ]);
+                
+                if (currentUser.role === 'admin') {
+                    await loadUsers();
+                }
+            } catch (error) {
+                // Error already handled in apiCall
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Supplier Management System với phân quyền đã tải');
+        });
+    </script>
+</body>
+</html>
