@@ -113,14 +113,4 @@ Some challenges during development:
 - Add JWT authentication
 
 ---
-
-## 📂 Project Structure
-
-```bash
-project/
-│── assets/
-│── config/
-│── database/
-│── pages/
-│── includes/
 │── index.php
