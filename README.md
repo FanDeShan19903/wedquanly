@@ -113,4 +113,3 @@ Some challenges during development:
 - Add JWT authentication
 
 ---
-│── index.php
